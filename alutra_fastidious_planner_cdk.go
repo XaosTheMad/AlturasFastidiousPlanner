@@ -1,10 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"github.com/aws/aws-cdk-go/awscdk/v2"
-	// "github.com/aws/aws-cdk-go/awscdk/v2/awssqs"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awsdynamodb"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awslambda"
 	"github.com/aws/constructs-go/constructs/v10"
 	"github.com/aws/jsii-runtime-go"
+	"os"
 )
 
 type AlutraFastidiousPlannerCdkStackProps struct {
@@ -21,9 +24,27 @@ func NewAlutraFastidiousPlannerCdkStack(scope constructs.Construct, id string, p
 	// The code that defines your stack goes here
 
 	// example resource
-	// queue := awssqs.NewQueue(stack, jsii.String("AlutraFastidiousPlannerCdkQueue"), &awssqs.QueueProps{
-	// 	VisibilityTimeout: awscdk.Duration_Seconds(jsii.Number(300)),
-	// })
+	var filepathExample string = "lambdas/index.js"
+	code, err := os.ReadFile(filepathExample)
+
+	if err != nil {
+		fmt.Printf("Something went wrong loading your example %v", filepathExample)
+		fmt.Println(err)
+		return nil
+	}
+
+	awslambda.NewFunction(stack, jsii.String("daily-cron-AFP"), &awslambda.FunctionProps{
+		Runtime: awslambda.Runtime_NODEJS_LATEST(),
+		Code:    awslambda.Code_FromInline(jsii.String(string(code))),
+		Handler: jsii.String("index.handler")},
+	)
+
+	awsdynamodb.NewTable(stack, jsii.String("campaigns-db-AFP"), &awsdynamodb.TableProps{
+		PartitionKey: &awsdynamodb.Attribute{
+			Name: jsii.String("campaign-name"),
+			Type: awsdynamodb.AttributeType_STRING,
+		},
+	})
 
 	return stack
 }
